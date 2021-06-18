@@ -5,6 +5,40 @@ import kotlinx.coroutines.runBlocking
 import java.net.InetSocketAddress
 import io.ktor.utils.io.*
 
+fun possibilityCheckDir(x: Int, y: Int, value: Int, dX: Int, dY: Int): Boolean {
+    val op = if (value == 1) {2} else {1}
+    var tmpX = x + dX
+    var tmpY = y + dY
+
+    if (tmpX in 0..7 && tmpY in 0..7 && State.Desc[tmpY][tmpX] == value)
+        return false
+
+    while (tmpX in 0..7 && tmpY in 0..7 && State.Desc[tmpY][tmpX] == op) {
+        tmpX += dX
+        tmpY += dY
+    }
+
+    return (tmpX in 0..7 && tmpY in 0..7 && State.Desc[tmpY][tmpX] == value)
+}
+
+fun possibilityCheck(value: Int): Boolean {
+    for (x in 0..7) {
+        for (y in 0..7) {
+            var res = 0
+
+            if (State.Desc[y][x] != 0)
+                continue
+
+            for (i in -1..1)
+                for (j in -1..1)
+                    if ((i != 0 || j != 0) && possibilityCheckDir(x, y, value, i, j))
+                        return true
+        }
+    }
+
+    return false
+}
+
 fun startAsServer(hostname: String, port: Int) = runBlocking {
     val server = aSocket(ActorSelectorManager(Dispatchers.IO)).tcp().bind(InetSocketAddress(hostname, port))
     println("Started summation server at ${server.localAddress}")
@@ -27,9 +61,33 @@ fun startAsServer(hostname: String, port: Int) = runBlocking {
 
     try {
         while (true) {
-            counter++
+            if (counter == 60) {
+                var p1 = 0
+                var p2 = 0
 
-            if (counter > 8) {
+                for (i in State.Desc.indices) {
+                    for (j in State.Desc[0].indices) {
+                        if (State.Desc[i][j] == 1)
+                            p1 += 1
+                        if (State.Desc[i][j] == 2)
+                            p2 += 1
+                    }
+                }
+                if (p1 > p2) {
+                    output1.writeStringUtf8("win")
+                    output2.writeStringUtf8("lose")
+                } else if (p1 < p2) {
+                    output1.writeStringUtf8("lose")
+                    output2.writeStringUtf8("win")
+                } else {
+                    output1.writeStringUtf8("lose")
+                    output2.writeStringUtf8("lose")
+                }
+
+                break
+            }
+
+            if (counter % 8 == 0) {
                 output1.writeStringUtf8("sync\n")
                 output2.writeStringUtf8("sync\n")
                 for (i in State.Desc.indices) {
@@ -40,26 +98,40 @@ fun startAsServer(hostname: String, port: Int) = runBlocking {
                 }
             }
 
-            output1.writeStringUtf8("turn\n")
-            var value = input1.readInt()
-            output1.writeStringUtf8("wait\n")
+            if (possibilityCheck(1)) {
+                counter++
+                output1.writeStringUtf8("turn\n")
+                val value = input1.readInt()
+                output1.writeStringUtf8("wait\n")
 
-            setDesc(value)
+                setDesc(value)
 
-            output2.writeStringUtf8("set\n")
-            output2.writeInt(value)
+                output2.writeStringUtf8("set\n")
+                output2.writeInt(value)
+            } else if(!possibilityCheck(2)) {
+                counter = 60
+            }
 
-            output2.writeStringUtf8("turn\n")
-            value = input2.readInt()
-            output2.writeStringUtf8("wait\n")
+            if (possibilityCheck(2)) {
+                counter++
+                output2.writeStringUtf8("turn\n")
+                val value = input2.readInt()
+                output2.writeStringUtf8("wait\n")
 
-            setDesc(value)
+                setDesc(value)
 
-            output1.writeStringUtf8("set\n")
-            output1.writeInt(value)
+                output1.writeStringUtf8("set\n")
+                output1.writeInt(value)
+            }
         }
     } catch (e: Throwable) {
         e.printStackTrace()
+        try {
+            output1.writeStringUtf8("exit\n")
+        } catch (e: Throwable) {}
+        try {
+            output2.writeStringUtf8("exit\n")
+        } catch (e: Throwable) {}
         socket1.close()
         socket2.close()
     }

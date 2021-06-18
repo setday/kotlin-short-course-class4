@@ -48,7 +48,7 @@ fun checkDir(x: Int, y: Int, value: Int, dX: Int, dY: Int): Int {
     var tmpX = x + dX
     var tmpY = y + dY
 
-    if (State.Desc[tmpY][tmpX] == value)
+    if (tmpX in 0..7 && tmpY in 0..7 && State.Desc[tmpY][tmpX] == value)
         return 0
 
     while (tmpX in 0..7 && tmpY in 0..7 && State.Desc[tmpY][tmpX] == op) {
@@ -115,8 +115,13 @@ fun drawDesc(canvas: Canvas, piece: Paint, stroke: Paint, player1: Paint, player
 
 class Renderer(val layer: SkiaLayer): SkiaRenderer {
     val typeface = Typeface.makeFromFile("fonts/JetBrainsMono-Regular.ttf")
-    val font = Font(typeface, 40f)
+    val font = Font(typeface, 20f)
 
+    val paint = Paint().apply {
+        color = 0xff8000ffb.toInt()
+        mode = PaintMode.FILL
+        strokeWidth = 1f
+    }
     val paintPlayer1 = Paint().apply {
         color = 0xffefa94a.toInt()
         mode = PaintMode.FILL
@@ -142,15 +147,17 @@ class Renderer(val layer: SkiaLayer): SkiaRenderer {
         val contentScale = layer.contentScale
         canvas.scale(contentScale, contentScale)
 
-//        when (State.Status) {
-//            "exit" -> println("Status: Connection closed!")
-//            "wait" -> println("Status: Waiting for opponent...")
-//            "set" -> println("Status: Getting data...")
-//            "turn" -> println("Status: Your turn!")
-//            "sync" -> println("Status: Synchronisation data...")
-//        }
-
         drawDesc(canvas, paintPiece, paintStroke, paintPlayer1, paintPlayer2)
+
+        when (State.Status) {
+            "exit" -> canvas.drawString("Status: Connection closed!", 0f, 50f, font, paint)
+            "wait" -> canvas.drawString("Status: Waiting for opponent...", 0f, 50f, font, paint)
+            "set" -> canvas.drawString("Status: Getting data...", 0f, 50f, font, paint)
+            "turn" -> canvas.drawString("Status: Your turn!", 0f, 50f, font, paint)
+            "sync" -> canvas.drawString("Status: Synchronisation data...", 0f, 50f, font, paint)
+            "win" -> canvas.drawString("You WIN (game has been ended)", 0f, 50f, font, paint)
+            "lose" -> canvas.drawString("You LOSE (game has been ended)", 0f, 50f, font, paint)
+        }
 
         layer.needRedraw()
     }
@@ -161,11 +168,11 @@ object MouseListener : MouseAdapter() {
         if(event != null) {
             val mouseX = event.x / 100
             val mouseY = event.y / 100
-            if(true || State.Status == "turn") {
+            if(State.Status == "turn" && mouseX in 0..7 && mouseY in 0..7) {
                 if (!setDesc(mouseY + mouseX * 10 + State.id * 100))
                     return
                 requestToSet(mouseX, mouseY)
-                State.Status == "wait"
+                State.Status = "wait"
             }
         }
     }

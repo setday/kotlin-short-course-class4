@@ -23,19 +23,19 @@ fun startAsClient(hostname: String, port: Int) = runBlocking {
             "wait" -> State.Status = "wait"
             "set" -> {
                 State.Status = "set"
-                setDesc(input.readUTF8Line().toString().toInt())
+                setDesc(input.readInt())
             }
             "sync" -> {
                 State.Status = "sync"
                 repeat (64) {
-                    setDesc(input.readUTF8Line().toString().toInt())
+                    val code = input.readInt()
+                    State.Desc[code % 10][(code / 10) % 10] = code / 100
                 }
             }
             "turn" -> State.Status = "turn"
         }
     }
 
-    State.output?.writeStringUtf8("c0000")
     socket.close()
 }
 
