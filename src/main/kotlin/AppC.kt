@@ -9,6 +9,7 @@ import org.jetbrains.skiko.SkiaWindow
 import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.MouseMotionAdapter
 import javax.swing.WindowConstants
 
 fun createWindowC(title: String) = runBlocking(Dispatchers.Swing) {
@@ -18,6 +19,7 @@ fun createWindowC(title: String) = runBlocking(Dispatchers.Swing) {
 
     window.layer.renderer = Renderer(window.layer)
     window.layer.addMouseListener(MouseListener)
+    window.layer.addMouseMotionListener(MouseMotionListener)
 
     window.preferredSize = Dimension(800, 800)
     window.minimumSize = Dimension(800,800)
@@ -117,6 +119,16 @@ class Renderer(val layer: SkiaLayer): SkiaRenderer {
     val typeface = Typeface.makeFromFile("fonts/JetBrainsMono-Regular.ttf")
     val font = Font(typeface, 20f)
 
+    val paintHover = Paint().apply {
+        color = 0x2f000000.toInt()
+        mode = PaintMode.FILL
+        strokeWidth = 1f
+    }
+    val paintHoverW = Paint().apply {
+        color = 0x2fff0000.toInt()
+        mode = PaintMode.FILL
+        strokeWidth = 1f
+    }
     val paint = Paint().apply {
         color = 0xff8000ffb.toInt()
         mode = PaintMode.FILL
@@ -159,8 +171,22 @@ class Renderer(val layer: SkiaLayer): SkiaRenderer {
             "lose" -> canvas.drawString("You LOSE (game has been ended)", 0f, 50f, font, paint)
         }
 
+        if (Mouse.HoverX in 0..7 && Mouse.HoverY in 0..7) {
+            when (State.Desc[Mouse.HoverY][Mouse.HoverX]) {
+                0 -> canvas.drawOval(Rect(Mouse.HoverX * 100f,
+                    Mouse.HoverY * 100f, (Mouse.HoverX + 1) * 100f, (Mouse.HoverY + 1) * 100f), paintHover)
+                else -> canvas.drawOval(Rect(Mouse.HoverX * 100f,
+                    Mouse.HoverY * 100f, (Mouse.HoverX + 1) * 100f, (Mouse.HoverY + 1) * 100f), paintHoverW)
+            }
+        }
+
         layer.needRedraw()
     }
+}
+
+object Mouse {
+    var HoverX = 0
+    var HoverY = 0
 }
 
 object MouseListener : MouseAdapter() {
@@ -174,6 +200,15 @@ object MouseListener : MouseAdapter() {
                 requestToSet(mouseX, mouseY)
                 State.Status = "wait"
             }
+        }
+    }
+}
+
+object MouseMotionListener : MouseMotionAdapter() {
+    override fun mouseMoved(event: MouseEvent?) {
+        if(event != null) {
+            Mouse.HoverX = event.x / 100
+            Mouse.HoverY = event.y / 100
         }
     }
 }
