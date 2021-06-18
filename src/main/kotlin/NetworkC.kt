@@ -33,6 +33,14 @@ fun startAsClient(hostname: String, port: Int) = runBlocking {
                 }
             }
             "turn" -> State.Status = "turn"
+            "lose" ->{
+                State.Status = "lose"
+                break
+            }
+            "win" -> {
+                State.Status = "win"
+                break
+            }
         }
     }
 

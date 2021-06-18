@@ -100,6 +100,7 @@ fun startAsServer(hostname: String, port: Int) = runBlocking {
 
             if (possibilityCheck(1)) {
                 counter++
+                output2.writeStringUtf8("wait\n")
                 output1.writeStringUtf8("turn\n")
                 val value = input1.readInt()
                 output1.writeStringUtf8("wait\n")
@@ -114,6 +115,7 @@ fun startAsServer(hostname: String, port: Int) = runBlocking {
 
             if (possibilityCheck(2)) {
                 counter++
+                output1.writeStringUtf8("wait\n")
                 output2.writeStringUtf8("turn\n")
                 val value = input2.readInt()
                 output2.writeStringUtf8("wait\n")
