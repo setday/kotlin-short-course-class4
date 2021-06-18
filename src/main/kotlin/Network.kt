@@ -4,46 +4,67 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import java.net.InetSocketAddress
 import io.ktor.utils.io.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 
 fun startAsServer(hostname: String, port: Int) = runBlocking {
-    State.isServer = true
     val server = aSocket(ActorSelectorManager(Dispatchers.IO)).tcp().bind(InetSocketAddress(hostname, port))
-    val socket = server.accept()
-    State.input = socket.openReadChannel()
+    println("Started summation server at ${server.localAddress}")
+
+    val socket1 = server.accept()
+    val input1 = socket1.openReadChannel()
+    val output1 = socket1.openWriteChannel(autoFlush = true)
+    output1.writeInt(1)
+    output1.writeStringUtf8("waitn\n")
+    println("Socket1 accepted: ${socket1.remoteAddress}")
+
+    val socket2 = server.accept()
+    val input2 = socket2.openReadChannel()
+    val output2 = socket2.openWriteChannel(autoFlush = true)
+    output2.writeInt(2)
+    output2.writeStringUtf8("wait\n")
+    println("Socket2 accepted: ${socket2.remoteAddress}")
+
+    var counter = 0
+
     try {
-        while(true) {
-            val line = State.input?.readUTF8Line() ?: break
-            val coords = line.split(" ").map { it.toFloat() }
-            if(coords.size == 2) {
-                State.points.add(Point(coords[0], coords[1], true))
+        while (true) {
+            counter++
+
+            if (counter > 8) {
+                output1.writeStringUtf8("sync\n")
+                output2.writeStringUtf8("sync\n")
+                for (i in State.Desc.indices) {
+                    for (j in State.Desc[0].indices) {
+                        output1.writeInt(getDesc(j, i))
+                        output2.writeInt(getDesc(j, i))
+                    }
+                }
             }
+
+            output1.writeStringUtf8("turn\n")
+            var value = input1.readInt()
+            output1.writeStringUtf8("wait\n")
+
+            setDesc(value)
+
+            output2.writeStringUtf8("set\n")
+            output2.writeInt(value)
+
+            output2.writeStringUtf8("turn\n")
+            value = input2.readInt()
+            output2.writeStringUtf8("wait\n")
+
+            setDesc(value)
+
+            output1.writeStringUtf8("set\n")
+            output1.writeInt(value)
         }
-    } finally {
-        socket.close()
-        server.close()
+    } catch (e: Throwable) {
+        e.printStackTrace()
+        socket1.close()
+        socket2.close()
     }
 }
 
-fun startAsClient(hostname: String, port: Int) = runBlocking {
-    State.isServer = false
-    val socket = aSocket(ActorSelectorManager(Dispatchers.IO)).
-    tcp().connect(InetSocketAddress(hostname, port))
-    State.output = socket.openWriteChannel(autoFlush = true)
-}
-
-fun sendMouseCoordinates(mouseX: Float, mouseY: Float) {
-    GlobalScope.launch(Dispatchers.IO) {
-        State.output?.writeStringUtf8("$mouseX $mouseY\n")
-    }
-}
-
-fun startNetworking(args: Array<String>, hostname: String, port: Int) {
-    if (args.size == 1) {
-        when (args[0]) {
-            "client" -> startAsClient(hostname, port)
-            "server" -> startAsServer(hostname, port)
-        }
-    }
+fun startNetworkingS(hostname: String, port: Int) {
+    startAsServer(hostname, port)
 }
