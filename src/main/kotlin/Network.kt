@@ -60,7 +60,7 @@ fun startAsServer(hostname: String, port: Int) = runBlocking {
     var counter = 0
 
     try {
-        while (true) {
+        while (false) {
             if (counter == 60) {
                 var p1 = 0
                 var p2 = 0
@@ -73,15 +73,19 @@ fun startAsServer(hostname: String, port: Int) = runBlocking {
                             p2 += 1
                     }
                 }
-                if (p1 > p2) {
-                    output1.writeStringUtf8("win")
-                    output2.writeStringUtf8("lose")
-                } else if (p1 < p2) {
-                    output1.writeStringUtf8("lose")
-                    output2.writeStringUtf8("win")
-                } else {
-                    output1.writeStringUtf8("lose")
-                    output2.writeStringUtf8("lose")
+                when {
+                    p1 > p2 -> {
+                        output1.writeStringUtf8("win\n")
+                        output2.writeStringUtf8("lose\n")
+                    }
+                    p1 < p2 -> {
+                        output1.writeStringUtf8("lose\n")
+                        output2.writeStringUtf8("win\n")
+                    }
+                    else -> {
+                        output1.writeStringUtf8("lose\n")
+                        output2.writeStringUtf8("lose\n")
+                    }
                 }
 
                 break
